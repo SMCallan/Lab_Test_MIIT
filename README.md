@@ -239,7 +239,10 @@ sudo apt install macchanger
   ```
 
 Every time you reconnect, you can wear a new mask.
-
+optional oneliner script for MAC OS Terminal
+```bash
+sudo ifconfig en0 down && sudo ifconfig en0 ether $(openssl rand -hex 6 | sed 's/\(..\)/\1:/g; s/:$//' | sed 's/^./2/') && sudo ifconfig en0 up
+```
 ---
 
 ## ⚖️ Spoofing vs. Randomizing — Which Mask Do You Wear?
