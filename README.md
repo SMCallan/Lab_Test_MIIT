@@ -141,3 +141,16 @@ xdg-open attacker_view.html
 ⚠️ Only run this workflow in the authorized **Kali Linux lab environment**. Do not use on production or personal networks.
 
 ---
+
+# Notes on how attacks can avoid detection.
+---
+
+## ☕ Public Wi-Fi Environment (Coffee Shop, Library, Hotspot)
+
+In open networks such as cafés or libraries, attribution of malicious activity is inherently weak. Attackers can obscure their identity by using **randomized or spoofed MAC addresses** — replacing their hardware’s unique identifier with a temporary or false one — and by keeping their sessions **short-lived** to minimise exposure. Even if defenders detect unusual traffic in real time, these measures make it difficult to tie activity to a specific device once the attacker disconnects. Unless CCTV or hotspot account records are available, there is typically no reliable forensic path back to a home address or named individual. In practice, detection is possible while the attacker is present, but durable attribution after they leave is rarely achievable.
+
+---
+
+## 🏢 Corporate / Managed Organisational Environment
+
+In enterprise networks, hiding is significantly more challenging. Infrastructure such as **Network Access Control (NAC)**, DHCP and authentication logs, and switch CAM tables tightly link each **IP and MAC address** to a physical port, access point, or user account. Even if an attacker spoofs or randomises their MAC, the intrusion still produces anomalous ARP activity, unusual traffic flows, and identifiable switch-port mappings that security teams can correlate in real time. Because these environments combine technical controls with physical monitoring (e.g. CCTV, badge access records), defenders can usually both **detect** man-in-the-middle behaviour as it occurs and **trace it back** to a specific machine or location afterwards. As such, persistent invisibility on a corporate LAN is rarely practical without compromising another host to act as the attacker’s proxy.
