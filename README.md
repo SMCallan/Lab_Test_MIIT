@@ -20,7 +20,8 @@ sudo apt update
 sudo apt install -y nmap tcpdump dsniff tshark
 
 # Python dependencies
-sudo apt install -y python3-pyshark python3-manuf
+sudo apt-get update
+sudo apt-get install -y python3-pandas python3-jinja2 python3-pyshark python3-manuf
 ```
 
 ---
