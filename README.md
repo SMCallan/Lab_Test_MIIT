@@ -1,34 +1,35 @@
 # 📊 MITM Capture → Metadata Report → Dashboard Guide (Kali Linux Lab)
 
-This workflow shows how to:
+This workflow demonstrates how to:
 
 1. Run the **MITM lab script** (`mitm_solv2.py`) to intercept and capture traffic.
 2. Process the capture file into structured metadata reports.
-3. Build a **self-contained HTML dashboard** showing the attacker’s-eye view.
+3. Build a **self-contained HTML dashboard** showing the attacker’s-eye view of the network.
 
 ---
 
 ## 🛠 Prerequisites
 
-On your Kali Linux VM, install the dependencies:
+On your **Kali Linux VM**, install the dependencies:
 
 ```bash
-# Ensure system packages are up to date
+# Keep system packages up to date
 sudo apt update
 
-# Required tools
+# Core tools
 sudo apt install -y nmap tcpdump dsniff tshark
 
 # Python dependencies
-sudo apt-get update
-sudo apt-get install -y python3-pandas python3-jinja2 python3-pyshark python3-manuf
+sudo apt install -y python3-pandas python3-jinja2 python3-pyshark python3-manuf
 ```
+
+(If needed: `python3 -m pip install --break-system-packages pyshark manuf pandas jinja2`)
 
 ---
 
-## ⚡ Step 1 — Run MITM Lab Script
+## ⚡ Step 1 — Run MITM Capture Script
 
-Start the MITM attack + capture script:
+Start the MITM attack + capture:
 
 ```bash
 python3 mitm_solv2.py
@@ -44,14 +45,15 @@ This script will:
   mitm_capture.pcap
   ```
 
-Let it run long enough to collect traffic, then stop it with `Ctrl+C`.
-The capture file `mitm_capture.pcap` will now be available in your working directory.
+➡️ Let it run long enough to collect traffic.
+➡️ Stop it with `Ctrl+C`.
+➡️ The file `mitm_capture.pcap` will be in your working directory.
 
 ---
 
 ## ⚡ Step 2 — Generate Metadata Reports
 
-Process the capture into structured CSV + JSON reports:
+Convert the capture into structured reports:
 
 ```bash
 python3 pcap_metadata_report.py -r mitm_capture.pcap -o ./report_out
@@ -59,11 +61,11 @@ python3 pcap_metadata_report.py -r mitm_capture.pcap -o ./report_out
 
 This creates `./report_out/` with:
 
-* `devices.csv` → MAC, vendor, IPs seen, packet counts
-* `dns_queries.csv` → client IPs + domains queried
-* `tls_sni.csv` → TLS hostnames from Client Hello
+* `devices.csv` → MACs, vendors, IPs, packet counts
+* `dns_queries.csv` → client IPs + queried domains
+* `tls_sni.csv` → TLS hostnames (from Client Hello)
 * `http_requests.csv` → plaintext HTTP requests (if any)
-* `protocols.csv` → counts of observed protocols
+* `protocols.csv` → observed protocol counts
 * `timeline_minute.csv` → packets per minute
 * `summary.json` → aggregate metadata overview
 
@@ -71,60 +73,71 @@ This creates `./report_out/` with:
 
 ## ⚡ Step 3 — Build HTML Dashboard
 
-Generate a single-file HTML dashboard:
+Generate the attacker-view dashboard:
 
 ```bash
 python3 pcap_report_dashboard.py -i ./report_out/summary.json -o attacker_view.html
 ```
 
-Open `attacker_view.html` in your Kali browser.
+Open it directly in your Kali browser:
+
+```bash
+xdg-open attacker_view.html
+```
 
 ---
 
 ## 📈 Dashboard Contents
 
-* **Summary block** → capture window, device count, packet totals
+* **Summary** → packets processed, time span, device count
 * **Protocol Mix Pie Chart** → ARP, DNS, TLS, HTTP, etc.
 * **Traffic Timeline Graph** → packet activity over time
 * **Top DNS Queries** → most requested domains
-* **Top TLS SNI Hostnames** → most visited services (even if encrypted)
-* **Devices Table** → MAC addresses, vendor inference, IPs seen
+* **Top TLS SNI Hostnames** → most visited services
+* **Devices Table** → MACs, vendor inference, IPs, packet counts
+
+> Blank sections simply mean no such traffic was present in the capture.
 
 ---
 
 ## 🎯 Example Workflow
 
-1. Run MITM script:
+1. Start MITM script:
 
    ```bash
    python3 mitm_solv2.py
    ```
-2. Stop it with `Ctrl+C` → leaves `mitm_capture.pcap`.
-3. Generate reports:
+2. Interact with the victim network (e.g., browsing).
+3. Stop with `Ctrl+C`.
+4. Generate reports:
 
    ```bash
    python3 pcap_metadata_report.py -r mitm_capture.pcap -o ./report_out
    ```
-4. Build dashboard:
+5. Build dashboard:
 
    ```bash
    python3 pcap_report_dashboard.py -i ./report_out/summary.json -o attacker_view.html
    ```
-5. Open `attacker_view.html` → explore the attacker’s-eye metadata.
+6. Open the report:
+
+   ```bash
+   xdg-open attacker_view.html
+   ```
 
 ---
 
 ## 🧑‍🏫 Teaching Use
 
-* Demonstrates that **encryption protects content**, but **metadata still leaks**:
+* Shows that **encryption protects content**, but **metadata still leaks**:
 
   * Device vendors and roles (via MAC OUIs).
   * Services/domains used (via DNS + TLS SNI).
   * Behaviour patterns (via timelines).
-* Shows attackers can profile a network without breaking encryption.
+* Demonstrates reconnaissance without breaking encryption.
 
 ---
 
-⚠️ Only run this workflow in the authorized Kali Linux lab environment. Do not use on production or personal networks.
+⚠️ Only run this workflow in the authorized **Kali Linux lab environment**. Do not use on production or personal networks.
 
 ---
