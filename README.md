@@ -128,12 +128,13 @@ xdg-open attacker_view.html
 
 ## Option B.
 ```bash
-# Run for lab_run_5min.py (5 minutes by default), it will also build the reports + dashboard
-python3 lab_run_5min.py --open
+# Run for lab_run_5min.py (5 minutes by default), it will also build the reports + dashboard (will need root level priv)
+sudo python3 lab_run_5min.py --open
 
 # Different duration (e.g., 180s), hour-level timeline, top 10 items
 python3 lab_run_5min.py --duration 180 --timeline-resolution hour --top-n 10 --open
 
+# MAN 
 python3 lab_run_5min.py [options]
 
 OPTIONS
