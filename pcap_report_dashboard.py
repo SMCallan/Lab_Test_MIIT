@@ -17,24 +17,59 @@ TEMPLATE = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <title>PCAP Metadata Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f4f6f8; color: #333; }
-    header { background: #1e293b; color: #fff; padding: 1em 2em; position: sticky; top: 0; z-index: 100; display:flex; align-items:center; justify-content:space-between; }
-    header h1 { margin: 0; font-size: 1.2em; }
-    nav a { color: #fff; margin-left: 1em; text-decoration: none; font-size: 0.9em; }
-    .container { max-width: 1200px; margin: 2em auto; padding: 0 1em; }
-    .card { background: #fff; padding: 1.5em; margin-bottom: 2em; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    h2 { border-bottom: 2px solid #eee; padding-bottom: .3em; margin-top: 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
-    th, td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
-    th { background: #f9fafb; text-align: left; position: sticky; top: 0; }
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --ink: #333333;
+      --muted: #555555;
+      --accent: #2563eb;
+      --soft: #f1f5f9;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: var(--bg); color: var(--ink); }
+    header {
+      background: #1e293b; color: #fff; padding: 0.9em 1.25em;
+      position: sticky; top: 0; z-index: 100; display:flex; align-items:center; justify-content:space-between;
+    }
+    header h1 { margin: 0; font-size: 1.05em; letter-spacing: .3px; }
+    nav a { color: #fff; margin-left: .9em; text-decoration: none; font-size: .9em; opacity:.9 }
+    nav a:hover { opacity: 1 }
+    .container { max-width: 1200px; margin: 1.5em auto 2.5em; padding: 0 1em; }
+    .card {
+      background: var(--card); padding: 1.25em; margin-bottom: 1.5em;
+      border-radius: 12px; box-shadow: 0 6px 18px rgba(10,20,40,.06), 0 1px 2px rgba(0,0,0,.04);
+    }
+    h2 { border-bottom: 2px solid var(--border); padding-bottom: .4em; margin: .1em 0 0.8em; font-size: 1.05em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.75em; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: .95em; }
+    th {
+      background: #f9fafb; text-align: left; position: sticky; top: 60px; z-index: 2;
+      font-weight: 600; color: #111827;
+    }
     tr:nth-child(even) { background: #fafafa; }
-    input[type="text"] { padding: 6px; margin-bottom: 0.5em; width: 100%; border: 1px solid #ccc; border-radius: 4px; }
-    .metrics { display: flex; gap: 1em; flex-wrap: wrap; }
-    .metric { flex: 1; min-width: 160px; background: #f1f5f9; border-radius: 8px; padding: 1em; text-align: center; }
-    .metric h3 { margin: 0; font-size: 1.3em; color:#111; }
-    .metric p { margin: .3em 0 0; font-size: .9em; color: #555; }
-    canvas { max-width: 100%; height: 350px; }
+    input[type="text"] {
+      padding: 10px 12px; margin-bottom: 0.6em; width: 100%;
+      border: 1px solid var(--border); border-radius: 8px; font-size: .95em;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    .metrics { display: grid; grid-template-columns: repeat(5, minmax(160px,1fr)); gap: 12px; }
+    .metric {
+      background: var(--soft); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 14px; text-align: center;
+    }
+    .metric h3 { margin: 0; font-size: 1.25em; color:#111; }
+    .metric p { margin: .35em 0 0; font-size: .85em; color: var(--muted); }
+    .chart-wrap { width: 100%; overflow-x: auto; }
+    canvas { max-width: 100%; height: 360px; }
+    .muted { color: var(--muted); font-size: .9em; }
+    @media (max-width: 980px) {
+      th { top: 100px; }
+      .metrics { grid-template-columns: repeat(2, minmax(160px,1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -55,19 +90,22 @@ TEMPLATE = """<!DOCTYPE html>
     <h2>Summary</h2>
     <div class="metrics">
       <div class="metric"><h3 id="packetCount">0</h3><p>Packets</p></div>
-      <div class="metric"><h3 id="deviceCount">0</h3><p>Devices</p></div>
-      <div class="metric"><h3 id="timeSpan">—</h3><p>Capture Window</p></div>
+      <div class="metric"><h3 id="deviceCount">0</h3><p>Devices (unique MACs)</p></div>
+      <div class="metric"><h3 id="uniqueIps">0</h3><p>Unique IPs</p></div>
+      <div class="metric"><h3 id="durationHuman">—</h3><p>Duration</p></div>
+      <div class="metric"><h3 id="timeSpan">—</h3><p>Capture Window (UTC)</p></div>
     </div>
+    <p class="muted" id="timelineNote" style="margin-top:.8em;"></p>
   </div>
 
   <div class="card" id="protocols">
     <h2>Protocol Mix</h2>
-    <canvas id="protocolChart"></canvas>
+    <div class="chart-wrap"><canvas id="protocolChart"></canvas></div>
   </div>
 
   <div class="card" id="timeline">
     <h2>Traffic Timeline</h2>
-    <canvas id="timelineChart"></canvas>
+    <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
   </div>
 
   <div class="card" id="dns">
@@ -99,47 +137,61 @@ TEMPLATE = """<!DOCTYPE html>
   const devices = %DEVICES%;
   const timeline = %TIMELINE%;
 
-  // Summary metrics
-  document.getElementById("packetCount").innerText = summary.processed_packets;
-  document.getElementById("deviceCount").innerText = summary.device_count;
-  const ts = summary.time_span_epoch;
+  // ---- Summary metrics
+  document.getElementById("packetCount").innerText = summary.processed_packets ?? 0;
+  document.getElementById("deviceCount").innerText = summary.device_count ?? 0;
+  document.getElementById("uniqueIps").innerText = summary.unique_ip_count ?? 0;
+  document.getElementById("durationHuman").innerText = summary.duration_human ?? "—";
+  const ts = summary.time_span_epoch || {};
   if (ts.first && ts.last) {
     let start = new Date(ts.first*1000).toISOString();
     let end = new Date(ts.last*1000).toISOString();
     document.getElementById("timeSpan").innerText = start.substr(11,8)+" → "+end.substr(11,8);
   }
+  const res = (summary.timeline_resolution || "minute");
+  document.getElementById("timelineNote").innerText =
+    "Timeline resolution: " + res + (res==="minute" ? " (default)" : "");
 
-  // Protocol chart
+  // ---- Protocol chart
   new Chart(document.getElementById("protocolChart"), {
     type: 'pie',
     data: {
       labels: protocols.map(p => p[0]),
       datasets: [{
         data: protocols.map(p => parseInt(p[1])),
-        backgroundColor: ['#2563eb','#f97316','#dc2626','#16a34a','#9333ea','#eab308','#06b6d4','#f43f5e']
+        backgroundColor: ['#2563eb','#f97316','#dc2626','#16a34a','#9333ea','#eab308','#06b6d4','#f43f5e','#60a5fa','#34d399']
       }]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom' } }
     }
   });
 
-  // Timeline chart
+  // ---- Timeline chart
   new Chart(document.getElementById("timelineChart"), {
     type: 'line',
     data: {
       labels: timeline.map(t => new Date(t[0]*1000).toISOString().substr(11,8)),
       datasets: [{
-        label: 'Packets/minute',
+        label: 'Packets per ' + res,
         data: timeline.map(t => parseInt(t[1])),
         borderColor: '#2563eb',
         backgroundColor: 'rgba(37,99,235,0.2)',
         fill: true,
-        tension: 0.3
+        tension: 0.3,
+        pointRadius: 0
       }]
+    },
+    options: {
+      scales: { x: { ticks: { maxRotation: 0, autoSkip: true } } },
+      plugins: { legend: { display: true } }
     }
   });
 
-  // Fill tables
+  // ---- Tables
   function fillTable(tableId, rows) {
     const tbody = document.querySelector(`#${tableId} tbody`);
+    tbody.innerHTML = '';
     rows.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${r[0]}</td><td>${r[1]}</td>`;
@@ -150,15 +202,17 @@ TEMPLATE = """<!DOCTYPE html>
   fillTable("sniTable", sni);
 
   const devTbody = document.querySelector("#devicesTable tbody");
+  devTbody.innerHTML = '';
   devices.forEach(dev => {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${dev.mac}</td><td>${dev.vendor}</td><td>${dev.ips}</td><td>${dev.pkts}</td>`;
     devTbody.appendChild(tr);
   });
 
-  // Filters
+  // ---- Filters
   function setupFilter(inputId, tableId) {
-    document.getElementById(inputId).addEventListener("keyup", function() {
+    const input = document.getElementById(inputId);
+    input.addEventListener("keyup", function() {
       let filter = this.value.toLowerCase();
       let rows = document.querySelectorAll(`#${tableId} tbody tr`);
       rows.forEach(row => {
@@ -184,18 +238,25 @@ def main():
         summary = json.load(f)
 
     report_dir = os.path.dirname(args.input)
+
     def load_csv_rows(fname):
         rows = []
         path = os.path.join(report_dir, fname)
-        if not os.path.exists(path): return rows
+        if not os.path.exists(path):
+            return rows
         with open(path, "r", encoding="utf-8") as f:
-            next(f)  # skip header
+            # skip header
+            try:
+                next(f)
+            except StopIteration:
+                return rows
             for line in f:
-                parts = line.strip().split(",")
+                parts = line.rstrip("\n").split(",")
                 if len(parts) > 1:
                     rows.append(parts)
         return rows
 
+    # Base CSVs
     protocols = load_csv_rows("protocols.csv")
     dns = load_csv_rows("dns_queries.csv")
     dns_counts = Counter([r[2] for r in dns])
@@ -208,8 +269,20 @@ def main():
     devices = load_csv_rows("devices.csv")
     device_objs = [{"mac": d[0], "vendor": d[1], "ips": d[2], "pkts": d[5]} for d in devices]
 
-    timeline = load_csv_rows("timeline_minute.csv")
-    timeline_points = [(int(r[0]), int(r[1])) for r in timeline]
+    # Dynamic timeline loader based on summary.timeline_resolution (fallbacks provided)
+    res = (summary.get("timeline_resolution") or "minute").lower()
+    timeline_fnames = [f"timeline_{res}.csv", "timeline_minute.csv", "timeline_second.csv", "timeline_hour.csv"]
+    timeline_points = []
+    for tf in timeline_fnames:
+        timeline = load_csv_rows(tf)
+        if timeline:
+            # each row: [<res>_epoch, packet_count]
+            try:
+                timeline_points = [(int(r[0]), int(r[1])) for r in timeline]
+            except Exception:
+                # be forgiving on parse errors
+                timeline_points = []
+            break
 
     html = TEMPLATE.replace("%SUMMARY%", json.dumps(summary))
     html = html.replace("%PROTOCOLS%", json.dumps(protocols))
