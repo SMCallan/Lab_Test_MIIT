@@ -1,127 +1,129 @@
-# Lab_Test_MIIT
-An exemplar for MIIT workflow.
+# 📊 MITM Capture → Metadata Report → Dashboard Guide (Kali Linux Lab)
+
+This workflow shows how to:
+
+1. Run the **MITM lab script** (`mitm_solv2.py`) to intercept and capture traffic.
+2. Process the capture file into structured metadata reports.
+3. Build a **self-contained HTML dashboard** showing the attacker’s-eye view.
 
 ---
 
-# 📊 PCAP Metadata Report + Dashboard Guide
+## 🛠 Prerequisites
 
-This toolkit gives you an **attacker’s-eye view** of network captures.
-From any `.pcap` (Wireshark/tcpdump), it extracts **metadata** — devices, DNS queries, TLS SNI hostnames, HTTP requests — and builds a **self-contained HTML dashboard**.
+On your Kali Linux VM, install the dependencies:
+
+```bash
+# Ensure system packages are up to date
+sudo apt update
+
+# Required tools
+sudo apt install -y nmap tcpdump dsniff tshark
+
+# Python dependencies
+pip install pyshark manuf
+```
 
 ---
 
-## 🛠 Requirements
+## ⚡ Step 1 — Run MITM Lab Script
 
-* Python **3.9+**
-* `tshark` (part of Wireshark)
+Start the MITM attack + capture script:
 
-  * Linux (Debian/Ubuntu/Kali):
+```bash
+python3 mitm_solv2.py
+```
 
-    ```bash
-    sudo apt update && sudo apt install tshark -y
-    ```
-  * macOS (Homebrew):
+This script will:
 
-    ```bash
-    brew install wireshark
-    ```
-* Python dependencies:
+* Enable IP forwarding (Linux only).
+* Start ARP spoofing between the victim and the gateway.
+* Launch `tcpdump` in the background, writing packets to:
 
-  ```bash
-  pip install pyshark manuf
+  ```
+  mitm_capture.pcap
   ```
 
+Let it run long enough to collect traffic, then stop it with `Ctrl+C`.
+The capture file `mitm_capture.pcap` will now be available in your working directory.
+
 ---
 
-## ⚡ Step 1 — Generate Metadata Reports
+## ⚡ Step 2 — Generate Metadata Reports
 
-Run the metadata extractor on your `.pcap` file:
+Process the capture into structured CSV + JSON reports:
 
 ```bash
 python3 pcap_metadata_report.py -r mitm_capture.pcap -o ./report_out
 ```
 
-This creates a folder (`./report_out`) containing:
+This creates `./report_out/` with:
 
-* `devices.csv` → MAC, vendor, IPs seen, first/last seen, packet count
-* `dns_queries.csv` → time, client IP, query, type
-* `tls_sni.csv` → time, src, dst, hostname (SNI from TLS Client Hello)
-* `http_requests.csv` → time, src, host, method, URI, UA, auth header flag
-* `protocols.csv` → protocol counts (how many packets per protocol)
-* `timeline_minute.csv` → packets per minute (for charting)
-* `summary.json` → quick aggregate summary (top DNS/SNI/HTTP, devices, capture span)
-
-### Options
-
-* Limit packets processed (for large captures):
-
-  ```bash
-  python3 pcap_metadata_report.py -r capture.pcap -o ./report_out --limit 50000
-  ```
-* Skip deeper parsing for speed:
-
-  ```bash
-  python3 pcap_metadata_report.py -r capture.pcap -o ./report_out --no-http --no-tls --no-dns
-  ```
+* `devices.csv` → MAC, vendor, IPs seen, packet counts
+* `dns_queries.csv` → client IPs + domains queried
+* `tls_sni.csv` → TLS hostnames from Client Hello
+* `http_requests.csv` → plaintext HTTP requests (if any)
+* `protocols.csv` → counts of observed protocols
+* `timeline_minute.csv` → packets per minute
+* `summary.json` → aggregate metadata overview
 
 ---
 
-## ⚡ Step 2 — Generate the HTML Dashboard
+## ⚡ Step 3 — Build HTML Dashboard
 
-Once reports exist, run the dashboard generator:
+Generate a single-file HTML dashboard:
 
 ```bash
-python3 pcap_report_dashboard.py -i ./report_out/summary.json -o ./attacker_view.html
+python3 pcap_report_dashboard.py -i ./report_out/summary.json -o attacker_view.html
 ```
 
-This produces a **single self-contained HTML file** (`attacker_view.html`).
-Open it in your browser — no server required.
+Open `attacker_view.html` in your Kali browser.
 
 ---
 
-## 📈 What You’ll See
+## 📈 Dashboard Contents
 
-* **Summary block** → input file, capture window, devices, top queries
-* **Protocol Mix Pie Chart** → relative share of ARP, DNS, TLS, HTTP, etc.
-* **Timeline Graph** → packet volume per minute
-* **Top DNS Queries Table** → most requested domains
-* **Top TLS SNI Table** → most contacted TLS hostnames
-* **Devices Table** → MAC + vendor + IPs seen + packet counts
+* **Summary block** → capture window, device count, packet totals
+* **Protocol Mix Pie Chart** → ARP, DNS, TLS, HTTP, etc.
+* **Traffic Timeline Graph** → packet activity over time
+* **Top DNS Queries** → most requested domains
+* **Top TLS SNI Hostnames** → most visited services (even if encrypted)
+* **Devices Table** → MAC addresses, vendor inference, IPs seen
 
 ---
 
 ## 🎯 Example Workflow
 
-1. Capture traffic in your lab with `tcpdump` or Wireshark:
+1. Run MITM script:
 
    ```bash
-   sudo tcpdump -i eth0 -w mitm_capture.pcap
+   python3 mitm_solv2.py
    ```
-2. Run the report maker:
+2. Stop it with `Ctrl+C` → leaves `mitm_capture.pcap`.
+3. Generate reports:
 
    ```bash
    python3 pcap_metadata_report.py -r mitm_capture.pcap -o ./report_out
    ```
-3. Build the dashboard:
+4. Build dashboard:
 
    ```bash
    python3 pcap_report_dashboard.py -i ./report_out/summary.json -o attacker_view.html
    ```
-4. Open `attacker_view.html` → browse the attacker’s view of your network.
+5. Open `attacker_view.html` → explore the attacker’s-eye metadata.
 
 ---
 
 ## 🧑‍🏫 Teaching Use
 
-* Show how **metadata alone** (DNS, SNI, MAC vendors) can profile a network.
-* Demonstrate device/vendor fingerprinting (IoT vs laptops vs phones).
-* Contrast plaintext vs encrypted traffic — HTTP vs HTTPS.
-* Encourage defenders to reduce metadata leakage (DNS over HTTPS, segmentation).
+* Demonstrates that **encryption protects content**, but **metadata still leaks**:
+
+  * Device vendors and roles (via MAC OUIs).
+  * Services/domains used (via DNS + TLS SNI).
+  * Behaviour patterns (via timelines).
+* Shows attackers can profile a network without breaking encryption.
 
 ---
 
-⚠️ **Note:** Only run this in your **authorized training environment**.
-Even without payloads, metadata can expose sensitive information.
+⚠️ Only run this workflow in the authorized Kali Linux lab environment. Do not use on production or personal networks.
 
 ---
-
