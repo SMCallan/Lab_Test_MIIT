@@ -57,10 +57,7 @@ TEMPLATE = """<!DOCTYPE html>
     }
     input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
     .metrics { display: grid; grid-template-columns: repeat(5, minmax(160px,1fr)); gap: 12px; }
-    .metric {
-      background: var(--soft); border: 1px solid var(--border);
-      border-radius: 10px; padding: 16px 14px; text-align: center;
-    }
+    .metric { background: var(--soft); border: 1px solid var(--border); border-radius: 10px; padding: 16px 14px; text-align: center; }
     .metric h3 { margin: 0; font-size: 1.25em; color:#111; }
     .metric p { margin: .35em 0 0; font-size: .85em; color: var(--muted); }
     .chart-wrap { width: 100%; overflow-x: auto; }
@@ -101,6 +98,11 @@ TEMPLATE = """<!DOCTYPE html>
   <div class="card" id="protocols">
     <h2>Protocol Mix</h2>
     <div class="chart-wrap"><canvas id="protocolChart"></canvas></div>
+    <input type="text" id="protoFilter" placeholder="Search protocols…">
+    <table id="protocolTable">
+      <thead><tr><th>Protocol</th><th>Packets</th></tr></thead>
+      <tbody></tbody>
+    </table>
   </div>
 
   <div class="card" id="timeline">
@@ -152,19 +154,35 @@ TEMPLATE = """<!DOCTYPE html>
   document.getElementById("timelineNote").innerText =
     "Timeline resolution: " + res + (res==="minute" ? " (default)" : "");
 
-  // ---- Protocol chart
+  // ---- Protocol chart (legend hidden to prevent overflow)
   new Chart(document.getElementById("protocolChart"), {
     type: 'pie',
     data: {
       labels: protocols.map(p => p[0]),
       datasets: [{
         data: protocols.map(p => parseInt(p[1])),
-        backgroundColor: ['#2563eb','#f97316','#dc2626','#16a34a','#9333ea','#eab308','#06b6d4','#f43f5e','#60a5fa','#34d399']
+        backgroundColor: ['#2563eb','#f97316','#dc2626','#16a34a','#9333ea','#eab308','#06b6d4','#f43f5e','#60a5fa','#34d399','#a78bfa','#fb7185']
       }]
     },
-    options: {
-      plugins: { legend: { position: 'bottom' } }
-    }
+    options: { plugins: { legend: { display: false } } }
+  });
+
+  // ---- Protocol table + filter
+  const protoTbody = document.querySelector("#protocolTable tbody");
+  function renderProtocolRows(rows) {
+    protoTbody.innerHTML = '';
+    rows.forEach(p => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${p[0]}</td><td>${p[1]}</td>`;
+      protoTbody.appendChild(tr);
+    });
+  }
+  renderProtocolRows(protocols);
+
+  document.getElementById("protoFilter").addEventListener("keyup", function() {
+    const f = this.value.toLowerCase();
+    const filtered = protocols.filter(p => (p[0]+" "+p[1]).toLowerCase().includes(f));
+    renderProtocolRows(filtered);
   });
 
   // ---- Timeline chart
@@ -188,7 +206,7 @@ TEMPLATE = """<!DOCTYPE html>
     }
   });
 
-  // ---- Tables
+  // ---- DNS/SNI tables
   function fillTable(tableId, rows) {
     const tbody = document.querySelector(`#${tableId} tbody`);
     tbody.innerHTML = '';
@@ -201,6 +219,7 @@ TEMPLATE = """<!DOCTYPE html>
   fillTable("dnsTable", dns);
   fillTable("sniTable", sni);
 
+  // ---- Devices table
   const devTbody = document.querySelector("#devicesTable tbody");
   devTbody.innerHTML = '';
   devices.forEach(dev => {
@@ -209,7 +228,7 @@ TEMPLATE = """<!DOCTYPE html>
     devTbody.appendChild(tr);
   });
 
-  // ---- Filters
+  // ---- Filters for other tables
   function setupFilter(inputId, tableId) {
     const input = document.getElementById(inputId);
     input.addEventListener("keyup", function() {
@@ -245,9 +264,8 @@ def main():
         if not os.path.exists(path):
             return rows
         with open(path, "r", encoding="utf-8") as f:
-            # skip header
             try:
-                next(f)
+                next(f)  # skip header
             except StopIteration:
                 return rows
             for line in f:
@@ -269,18 +287,16 @@ def main():
     devices = load_csv_rows("devices.csv")
     device_objs = [{"mac": d[0], "vendor": d[1], "ips": d[2], "pkts": d[5]} for d in devices]
 
-    # Dynamic timeline loader based on summary.timeline_resolution (fallbacks provided)
+    # Dynamic timeline loading per summary.timeline_resolution (fallbacks)
     res = (summary.get("timeline_resolution") or "minute").lower()
-    timeline_fnames = [f"timeline_{res}.csv", "timeline_minute.csv", "timeline_second.csv", "timeline_hour.csv"]
+    timeline_candidates = [f"timeline_{res}.csv", "timeline_minute.csv", "timeline_second.csv", "timeline_hour.csv"]
     timeline_points = []
-    for tf in timeline_fnames:
-        timeline = load_csv_rows(tf)
-        if timeline:
-            # each row: [<res>_epoch, packet_count]
+    for fname in timeline_candidates:
+        data = load_csv_rows(fname)
+        if data:
             try:
-                timeline_points = [(int(r[0]), int(r[1])) for r in timeline]
+                timeline_points = [(int(r[0]), int(r[1])) for r in data]
             except Exception:
-                # be forgiving on parse errors
                 timeline_points = []
             break
 
