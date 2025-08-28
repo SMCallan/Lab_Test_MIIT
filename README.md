@@ -126,6 +126,45 @@ xdg-open attacker_view.html
    xdg-open attacker_view.html
    ```
 
+## Option B.
+```bash
+# Run for lab_run_5min.py (5 minutes by default), it will also build the reports + dashboard
+python3 lab_run_5min.py --open
+
+# Different duration (e.g., 180s), hour-level timeline, top 10 items
+python3 lab_run_5min.py --duration 180 --timeline-resolution hour --top-n 10 --open
+
+python3 lab_run_5min.py [options]
+
+OPTIONS
+--mitm-script PATH
+Path to the MITM script to run (default: mitm_solv2.py).
+--pcap FILE
+Name/location of the .pcap file produced by the MITM script
+(default: mitm_capture.pcap).
+--duration SECONDS
+Run time for the MITM capture before auto-stop.
+Default: 300 (5 minutes).
+--outdir DIR
+Directory where reports will be written.
+Default: report_out.
+--timeline-resolution {second,minute,hour}
+Bucket size for traffic timeline in the report/dashboard.
+Default: minute.
+--top-n N
+Number of top items to include in summary.json (e.g. top DNS queries, SNI).
+Default: 15.
+--sample-rate N
+Process every Nth packet when parsing the PCAP (reduces load for large files).
+Default: 1 (process every packet).
+--open
+Open the generated dashboard HTML in the system browser.
+(Optional; no effect in headless/remote sessions.)
+--dashboard FILE
+Output filename for the dashboard HTML.
+Default: attacker_view.html.
+```
+
 ---
 
 ## 🧑‍🏫 Teaching Use
