@@ -154,3 +154,151 @@ In open networks such as cafés or libraries, attribution of malicious activity 
 ## 🏢 Corporate / Managed Organisational Environment
 
 In enterprise networks, hiding is significantly more challenging. Infrastructure such as **Network Access Control (NAC)**, DHCP and authentication logs, and switch CAM tables tightly link each **IP and MAC address** to a physical port, access point, or user account. Even if an attacker spoofs or randomises their MAC, the intrusion still produces anomalous ARP activity, unusual traffic flows, and identifiable switch-port mappings that security teams can correlate in real time. Because these environments combine technical controls with physical monitoring (e.g. CCTV, badge access records), defenders can usually both **detect** man-in-the-middle behaviour as it occurs and **trace it back** to a specific machine or location afterwards. As such, persistent invisibility on a corporate LAN is rarely practical without compromising another host to act as the attacker’s proxy.
+
+---
+
+# 🕶️ Lab Manual: Bending Your Digital Fingerprints
+
+> “Your MAC is your fingerprint on the wire. Change the fingerprint, and you walk the net in disguise.”
+
+In this lab you’ll learn how to mess with the one thing most networks assume is sacred: the **MAC address**. You’ll see how to swap it, randomize it, and confuse anyone watching the wire.
+
+⚠️ **Reality check:** This is a **controlled exercise**. Do not take these skills outside your lab. On real corporate or public networks, this behaviour is both illegal and noisy. In here though, we play with the gloves off.
+
+---
+
+## 🛠 Setup
+
+* You’re running **Kali Linux** inside a VM (VirtualBox or UTM).
+* **Networking mode:** make sure the VM is in **Bridged Mode**.
+
+  * NAT mode hides your spoofing — the world just sees your host Mac’s real address.
+  * Bridged mode lets your VM stand on its own two feet, with its own MAC visible to the LAN. That’s where the fun is.
+
+---
+
+## 🔍 Step 1 — Spot your current fingerprint
+
+```bash
+ip link show
+```
+
+Find your NIC (`eth0`, maybe `ens33`, or `wlan0` if using a USB Wi-Fi adapter).
+You’ll see something like:
+
+```
+link/ether 08:00:27:12:34:56
+```
+
+That’s your default MAC. The cage you’re about to break out of.
+
+---
+
+## 🎭 Step 2 — Spoof it
+
+Take your interface down, switch identities, and bring it back up:
+
+```bash
+sudo ip link set dev eth0 down
+sudo ip link set dev eth0 address de:ad:be:ef:00:01
+sudo ip link set dev eth0 up
+```
+
+Check the new mask:
+
+```bash
+ip link show eth0
+```
+
+Congrats — you’re no longer you. To the LAN, you’re some other machine entirely.
+
+---
+
+## 🎲 Step 3 — Randomize it
+
+Install **macchanger**, the little chaos tool:
+
+```bash
+sudo apt install macchanger
+```
+
+* Show your current state:
+
+  ```bash
+  sudo macchanger -s eth0
+  ```
+* Flip to a totally random MAC:
+
+  ```bash
+  sudo macchanger -r eth0
+  ```
+* Or scramble while keeping the same vendor prefix (sneakier):
+
+  ```bash
+  sudo macchanger -a eth0
+  ```
+
+Every time you reconnect, you can wear a new mask.
+
+---
+
+## ⚖️ Spoofing vs. Randomizing — Which Mask Do You Wear?
+
+Here’s the deal: you don’t stack both — you **choose depending on the mission**.
+
+* **Spoofing (manual pick):**
+  You control the disguise. Want to look like a Dell laptop or an iPhone? Spoof their vendor prefix.
+
+  * 💡 Best for **blending in** on a network that expects specific device types.
+  * ⚠️ High risk: if the real device with that MAC is present, you collide and draw heat.
+
+* **Randomizing (auto):**
+  You let chaos hand you an identity. Every session is disposable.
+
+  * 💡 Best for **public Wi-Fi privacy**, where you just don’t want to be tracked across logins.
+  * ⚠️ In enterprise LANs, randomized MACs stand out because they carry the “locally administered” flag. Blue Teams notice.
+
+* **Short-lived sessions:** Always a good practice. Time is heat. The longer you linger, the easier you are to burn.
+
+👉 Rule of thumb:
+
+* Public café Wi-Fi? **Randomize**.
+* Corporate LAN lab? **Spoof** to look like a known vendor.
+
+---
+
+## ⏳ Step 4 — Keep it short
+
+In the underground, **time is heat**. The longer you sit, the easier you are to find.
+A **short-lived session** is just that: connect, do your thing, disconnect.
+Minutes, not hours. Pop in like a ghost, vanish before the blue team blinks.
+
+---
+
+## 🧹 Step 5 — Clean up
+
+When you’re done, restore your original face:
+
+```bash
+sudo macchanger -p eth0
+```
+
+or manually reset the hardware MAC you noted earlier.
+
+---
+
+## 💡 Reflection
+
+* Spoofing = targeted disguise, useful if you want to look like someone specific.
+* Randomizing = throwaway masks, best for avoiding long-term tracking.
+* Neither makes you invisible; they just change the shape of your shadow.
+
+---
+
+## ⚔️ Blue Team Reality Check
+
+Even in disguise, defenders have tricks: ARP tables, switch logs, RF triangulation. A fake MAC hides your hardware ID — it doesn’t make you invisible. In a corporate LAN, you’d still get pinned down. On public Wi-Fi, you’d need cameras or login records to get truly burned.
+
+---
+
+> “In the lab, we learn the shadows. Outside the lab, respect the light.”
