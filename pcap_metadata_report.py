@@ -314,3 +314,7 @@ def main():
         print(f"   Top DNS: {', '.join(d['domain'] for d in top_dns[:5])}")
     if top_sni:
         print(f"   Top SNI: {', '.join(h['hostname'] for h in top_sni[:5])}")
+
+if __name__ == "__main__":
+    main()
+
