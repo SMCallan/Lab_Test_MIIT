@@ -302,3 +302,70 @@ Even in disguise, defenders have tricks: ARP tables, switch logs, RF triangulati
 ---
 
 > “In the lab, we learn the shadows. Outside the lab, respect the light.”
+
+---
+
+# 👮‍♂️ The Hunter’s Guide: Spotting the Masked Ones
+
+> *“I am the Law. The network is my city. Every packet is under my jurisdiction. No disguise, no trick, no random mask escapes my gaze.”*
+
+This is your doctrine for hunting those who would hide behind forged MACs and fleeting sessions.
+
+---
+
+## ⚖️ 1. Know the Law of the Wire
+
+Every device walks the network with a **MAC address** — a digital badge. When it’s real, it matches vendor records. When it’s fake, the seams show: odd prefixes, collisions, sudden flips.
+
+The attacker thinks it’s a mask. To you, it’s probable cause.
+
+---
+
+## 🔎 2. Signs of the Masked
+
+* **Collisions in the ARP tables**
+  Two machines shouting with the same MAC? One of them is a fraud.
+
+* **Gratuitous ARP storms**
+  A node keeps insisting “I am the gateway”? That’s ARP spoofing. Guilty on sight.
+
+* **Locally administered MACs**
+  Randomized addresses flip the “U/L” bit. They betray themselves as disposable masks.
+
+* **Rapid identity churn**
+  A device vanishes and reappears with a new face every few minutes. Real citizens don’t act like that. Criminals do.
+
+---
+
+## 🛠️ 3. Tools of Justice
+
+* **arpwatch / Zeek / Suricata**
+  Your eyes on ARP — they log every suspicious update, every conflict.
+
+* **Switch CAM tables**
+  The switch is your informant. It knows which port each MAC calls home.
+
+* **DHCP and NAC logs**
+  The registry of truth. Every lease, every login. A spoof still leaves footprints here.
+
+* **CCTV and access records**
+  Physical and digital law meet. The badge scan on the door, the camera above the desk, tie the fake MAC back to flesh and blood.
+
+---
+
+## 🔥 4. Tracking the Guilty
+
+* Spot the forged MAC.
+* Query the switch: *“Which port carries this mask?”*
+* Lock the port. Quarantine the device.
+* Cross-reference with DHCP logs and building access.
+* The mask comes off. The attacker stands revealed.
+
+---
+
+## ⚔️ 5. The Verdict
+
+* **Public Wi-Fi villains:** Slippery. If you don’t catch them in the act, they fade into the crowd. But while they’re live, their RF signal gives them away.
+* **Corporate intruders:** No escape. Every packet is logged, every port accounted for. If they sit on your LAN, you will find them.
+
+> *“They can spoof. They can randomize. They can run. But they can’t hide from the Law of the Wire.”*
